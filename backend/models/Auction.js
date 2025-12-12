@@ -21,7 +21,11 @@ const auctionSchema = new mongoose.Schema({
   },
   currentPrice: {
     type: Number,
-    default: 0, // Will be updated as bids come in
+    // FIX: Set default based on startingPrice directly here.
+    // This removes the need for the pre-save hook that was crashing.
+    default: function() {
+      return this.startingPrice;
+    }
   },
   startTime: {
     type: Date,
@@ -41,7 +45,6 @@ const auctionSchema = new mongoose.Schema({
     ref: 'User',
     default: null,
   },
-  // We embed bids here for simplicity and speed
   bids: [
     {
       bidder: {
@@ -57,25 +60,15 @@ const auctionSchema = new mongoose.Schema({
     enum: ['active', 'completed', 'unsold'],
     default: 'active',
   },
-  // For images, we will store URLs (String). 
-  // We can handle the actual file upload separately.
-  images: [
-    {
-      type: String, 
-    }
-  ],
+  // FIX: Simplified Array of Strings definition
+  images: [String],
   createdAt: {
     type: Date,
     default: Date.now,
   },
 });
 
-// Middleware to set currentPrice to startingPrice on creation
-auctionSchema.pre('save', function (next) {
-  if (this.isNew) {
-    this.currentPrice = this.startingPrice;
-  }
-  next();
-});
+// REMOVED: The pre('save') hook was deleted because we handled the logic in the 'default' field above.
+// This eliminates the "next is not a function" error.
 
 module.exports = mongoose.model('Auction', auctionSchema);

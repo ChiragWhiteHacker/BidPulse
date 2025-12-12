@@ -13,6 +13,9 @@ import Register from './pages/Register';
 import BidderDashboard from './pages/dashboard/BidderDashboard';
 import SellerDashboard from './pages/dashboard/SellerDashboard';
 import AdminDashboard from './pages/dashboard/AdminDashboard';
+import CreateAuction from './pages/dashboard/CreateAuction';
+import AuctionDetails from './pages/AuctionDetails';
+import EditAuction from './pages/dashboard/EditAuction';
 
 function App() {
   return (
@@ -30,6 +33,9 @@ function App() {
           <Route path="/dashboard/bidder" element={<BidderDashboard />} />
           <Route path="/dashboard/seller" element={<SellerDashboard />} />
           <Route path="/dashboard/admin" element={<AdminDashboard />} />
+          <Route path="/create-auction" element={<CreateAuction />} />
+          <Route path="/auction/:id" element={<AuctionDetails />} />
+          <Route path="/edit-auction/:id" element={<EditAuction />} />
           <Route path="*" element={<div className="p-10 text-center">404 Not Found</div>} />
         </Routes>
       </div>
