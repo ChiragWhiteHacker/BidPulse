@@ -93,6 +93,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/auctions', auctionRoutes);
 //app.use('/api/bids', bidRoutes);
 app.use('/api/payment', paymentRoutes);
+// Admin Routes
+app.use('/api/admin', require('./routes/adminRoutes'));
 
 // 7. Test Route
 app.get('/', (req, res) => {

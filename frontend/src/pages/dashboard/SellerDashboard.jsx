@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { getAllAuctions, deleteAuction } from '../../redux/auctionSlice';
-import { Trash2, Plus, Pencil, Eye } from 'lucide-react'; // Added Pencil & Eye
+import { Trash2, Plus, Pencil, Eye, DollarSign, Lock } from 'lucide-react';
 
 const SellerDashboard = () => {
   const dispatch = useDispatch();
@@ -16,6 +16,17 @@ const SellerDashboard = () => {
 
   // Filter only THIS seller's auctions
   const myAuctions = auctions.filter((a) => a.seller._id === user._id || a.seller === user._id);
+
+  // --- EARNINGS LOGIC ---
+  // 1. Released Earnings (Status: 'closed') -> 92% of price
+  const totalEarnings = myAuctions
+    .filter(a => a.status === 'closed')
+    .reduce((acc, item) => acc + (item.currentPrice * 0.92), 0);
+
+  // 2. Pending Earnings (Status: 'paid_held_in_escrow') -> 92% of price
+  const potentialEarnings = myAuctions
+    .filter(a => a.status === 'paid_held_in_escrow')
+    .reduce((acc, item) => acc + (item.currentPrice * 0.92), 0);
 
   const handleDelete = (id) => {
     if (window.confirm('Are you sure you want to delete this auction?')) {
@@ -33,9 +44,45 @@ const SellerDashboard = () => {
         </Link>
       </div>
 
+      {/* --- NEW EARNINGS SECTION --- */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-green-100">
+            <div className="flex items-center gap-2 text-gray-500 mb-1">
+                <DollarSign size={18} />
+                <span className="text-sm">Total Earnings (Released)</span>
+            </div>
+            <h3 className="text-3xl font-bold text-green-600">${totalEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+        </div>
+
+        <div className="bg-white p-6 rounded-xl shadow-sm border border-blue-100">
+             <div className="flex items-center gap-2 text-gray-500 mb-1">
+                <Lock size={18} />
+                <span className="text-sm">Pending in Escrow</span>
+            </div>
+            <h3 className="text-3xl font-bold text-blue-600">${potentialEarnings.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
+            <p className="text-xs text-blue-400 mt-1">Available after buyer confirms receipt</p>
+        </div>
+
+        <div className="bg-gradient-to-r from-gray-800 to-gray-900 p-6 rounded-xl shadow-sm text-white flex flex-col justify-between">
+            <div>
+                <p className="text-gray-300 text-sm">Payout Method</p>
+                <h3 className="text-xl font-bold">Stripe Connected</h3>
+            </div>
+            <a 
+              href="https://dashboard.stripe.com/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="bg-white/20 hover:bg-white/30 text-white text-center py-2 rounded-lg text-sm font-medium backdrop-blur-sm transition"
+            >
+              View Stripe Dashboard
+            </a>
+        </div>
+      </div>
+      {/* --------------------------- */}
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div className="p-6 border-b border-gray-100">
-          <h2 className="text-xl font-semibold text-gray-800">My Active Listings</h2>
+          <h2 className="text-xl font-semibold text-gray-800">My Listings</h2>
         </div>
         
         {isLoading ? (
@@ -56,18 +103,16 @@ const SellerDashboard = () => {
               <tbody className="divide-y divide-gray-100">
                 {myAuctions.map((auction) => (
                   <tr key={auction._id} className="hover:bg-gray-50 transition-colors">
-                    {/* 1. Image Column */}
                     <td className="px-6 py-4">
                       <div className="h-12 w-12 rounded-lg overflow-hidden border border-gray-200">
-                         <img 
+                          <img 
                            src={auction.images[0] || 'https://via.placeholder.com/150'} 
                            alt={auction.title}
                            className="h-full w-full object-cover"
-                         />
+                          />
                       </div>
                     </td>
 
-                    {/* 2. Title & Description Snippet */}
                     <td className="px-6 py-4">
                       <div className="font-medium text-gray-900">{auction.title}</div>
                       <div className="text-xs text-gray-400 mt-1 max-w-xs truncate">
@@ -81,9 +126,12 @@ const SellerDashboard = () => {
 
                     <td className="px-6 py-4">
                       <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${
-                        auction.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
+                        auction.status === 'active' ? 'bg-green-100 text-green-800' : 
+                        auction.status === 'closed' ? 'bg-gray-800 text-white' :
+                        auction.status === 'paid_held_in_escrow' ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
                       }`}>
-                        {auction.status}
+                        {auction.status === 'paid_held_in_escrow' ? 'Escrow' : auction.status}
                       </span>
                     </td>
 
@@ -91,32 +139,17 @@ const SellerDashboard = () => {
                       {new Date(auction.endTime).toLocaleDateString()}
                     </td>
 
-                    {/* 3. Actions: Edit & Delete */}
                     <td className="px-6 py-4 text-center">
                       <div className="flex items-center justify-center gap-3">
-                        {/* Placeholder for Edit - We will build this page next */}
-                          <Link 
-  to={`/edit-auction/${auction._id}`} 
-  className="text-blue-500 hover:text-blue-700 transition" 
-  title="Edit"
->
-  <Pencil size={18} />
-                          </Link>
+                        <Link to={`/edit-auction/${auction._id}`} className="text-blue-500 hover:text-blue-700 transition" title="Edit">
+                          <Pencil size={18} />
+                        </Link>
                         
-                        {/* Placeholder for View Details */}
-                        <Link 
-                          to={`/auction/${auction._id}`} 
-                          className="text-gray-400 hover:text-bid-purple transition"
-                          title="View Public Page"
-                        >
+                        <Link to={`/auction/${auction._id}`} className="text-gray-400 hover:text-bid-purple transition" title="View Public Page">
                            <Eye size={18} />
                         </Link>
 
-                        <button 
-                          onClick={() => handleDelete(auction._id)} 
-                          className="text-red-400 hover:text-red-600 transition" 
-                          title="Delete"
-                        >
+                        <button onClick={() => handleDelete(auction._id)} className="text-red-400 hover:text-red-600 transition" title="Delete">
                           <Trash2 size={18} />
                         </button>
                       </div>
