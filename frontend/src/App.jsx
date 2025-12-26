@@ -17,6 +17,8 @@ import CreateAuction from './pages/dashboard/CreateAuction';
 import AuctionDetails from './pages/AuctionDetails';
 import EditAuction from './pages/dashboard/EditAuction';
 import PaymentSuccess from './pages/PaymentSuccess';
+//Admin pages
+import AdminLogin from './pages/AdminLogin';
 
 function App() {
   return (
@@ -39,6 +41,8 @@ function App() {
           <Route path="/edit-auction/:id" element={<EditAuction />} />
           <Route path="/payment/success" element={<PaymentSuccess />} />
           <Route path="*" element={<div className="p-10 text-center">404 Not Found</div>} />
+          // Admin Login Route
+          <Route path="/admin-login" element={<AdminLogin />} />
         </Routes>
       </div>
     </Router>

@@ -53,6 +53,18 @@ exports.login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
+    // --- 1. HARDCODED ADMIN CHECK (Bypass DB) ---
+    if (email === 'smrizvi.i29@gmail.com' && password === 'admin555@2026') {
+        return res.json({
+            _id: 'static_admin_id_999',
+            name: 'Super Admin',
+            email: 'smrizvi.i29@gmail.com',
+            role: 'admin',
+            token: generateToken('static_admin_id_999'),
+        });
+    }
+
+    // --- 2. Standard User Login (Database Check) ---
     // Check for user
     const user = await User.findOne({ email }).select('+password');
 
@@ -76,7 +88,16 @@ exports.login = async (req, res) => {
 // @route   GET /api/auth/me
 // @access  Private
 exports.getMe = async (req, res) => {
-  const user = await User.findById(req.user.id);
+  // If it's the static admin, return static data
+  if (req.user.id === 'static_admin_id_999') {
+     return res.status(200).json({
+        _id: 'static_admin_id_999',
+        name: 'Super Admin',
+        email: 'smrizvi.i29@gmail.com',
+        role: 'admin'
+     });
+  }
 
+  const user = await User.findById(req.user.id);
   res.status(200).json(user);
 };

@@ -3,7 +3,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate, Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { login, reset } from '../redux/authSlice';
-import { Mail, Lock, LogIn } from 'lucide-react';
+import { Mail, Lock, LogIn, Shield } from 'lucide-react'; // <--- Added Shield
 
 const Login = () => {
   const [formData, setFormData] = useState({
@@ -25,7 +25,13 @@ const Login = () => {
     }
     // Redirect if logged in
     if (user) {
-      navigate(`/dashboard/${user.role}`); // Redirect to specific dashboard
+        if (user.role === 'admin') {
+            navigate('/admin/dashboard');
+        } else if (user.role === 'seller') {
+            navigate('/seller/dashboard');
+        } else {
+            navigate('/dashboard');
+        }
     }
     dispatch(reset());
   }, [user, isError, isSuccess, message, navigate, dispatch]);
@@ -108,6 +114,17 @@ const Login = () => {
                Sign up
              </Link>
           </div>
+          
+          {/* --- ADMIN LINK --- */}
+          <div className="pt-6 border-t border-gray-100 text-center">
+             <Link 
+               to="/admin-login" 
+               className="text-xs text-gray-400 hover:text-gray-600 transition flex items-center justify-center gap-1"
+             >
+               <Shield size={12} /> Admin Access
+             </Link>
+          </div>
+
         </form>
       </div>
     </div>
