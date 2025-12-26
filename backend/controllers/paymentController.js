@@ -6,17 +6,29 @@ const User = require('../models/User');
 // @route   POST /api/payment/checkout/:auctionId
 // @access  Private (Winner only)
 exports.createCheckoutSession = async (req, res) => {
+  console.log("1. Payment Request Received for Auction:", req.params.auctionId); // <--- DEBUG LOG
+
   try {
+    // Check if API Key is loaded
+    if (!process.env.STRIPE_SECRET_KEY) {
+        console.error("CRITICAL: STRIPE_SECRET_KEY is missing in .env");
+        return res.status(500).json({ message: "Server Error: Stripe Key Missing" });
+    }
+
     const auction = await Auction.findById(req.params.auctionId);
+    console.log("2. Auction Found:", auction ? "Yes" : "No");
 
     if (!auction) {
       return res.status(404).json({ message: 'Auction not found' });
     }
 
-    // Security Check: Only the winner can pay
+    // Security Check
+    console.log(`3. Winner Check: Auction Winner (${auction.winner}) vs User (${req.user.id})`);
     if (auction.winner.toString() !== req.user.id) {
       return res.status(403).json({ message: 'Only the winner can pay for this auction' });
     }
+
+    console.log("4. Creating Stripe Session...");
 
     // Create Stripe Session
     const session = await stripe.checkout.sessions.create({
@@ -27,9 +39,8 @@ exports.createCheckoutSession = async (req, res) => {
             currency: 'usd',
             product_data: {
               name: auction.title,
-              description: auction.description,
-              // Note: If auction.images is empty or contains invalid URLs, Stripe might throw an error here.
-              // Ensure your auction images are valid public URLs (e.g. starting with http/https).
+              description: auction.description ? auction.description.substring(0, 400) : "Auction Item", // Limit length to be safe
+              // We intentionally leave out 'images' for now to prevent URL errors
             },
             unit_amount: Math.round(auction.currentPrice * 100), // Stripe uses cents
           },
@@ -45,37 +56,28 @@ exports.createCheckoutSession = async (req, res) => {
       },
     });
 
+    console.log("5. Stripe Session Created! ID:", session.id);
     res.status(200).json({ id: session.id, url: session.url });
+
   } catch (error) {
-    // --- THIS IS THE UPDATE ---
-    console.error("STRIPE ERROR:", error); 
-    // -------------------------
-    res.status(500).json({ message: error.message });
+    console.error("!!! STRIPE ERROR !!!");
+    console.error(error); // This prints the full error object
+    res.status(500).json({ message: error.message || "Payment Processing Failed" });
   }
 };
 
 // @desc    Buyer confirms receipt -> Release funds to Seller
-// @route   POST /api/payment/release/:auctionId
-// @access  Private (Buyer/Winner)
 exports.releaseFunds = async (req, res) => {
+  // ... (Keep existing releaseFunds logic, it is fine) ...
   try {
     const auction = await Auction.findById(req.params.auctionId).populate('seller');
+    if (auction.winner.toString() !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
+    if (auction.status !== 'paid_held_in_escrow') return res.status(400).json({ message: 'Funds cannot be released yet' });
 
-    // 1. Validation
-    if (auction.winner.toString() !== req.user.id) {
-      return res.status(403).json({ message: 'Not authorized' });
-    }
-    if (auction.status !== 'paid_held_in_escrow') {
-      return res.status(400).json({ message: 'Funds cannot be released yet' });
-    }
-
-    // 2. Calculate Commission (8%)
     const totalAmount = auction.currentPrice;
     const commission = totalAmount * 0.08;
     const sellerPayout = totalAmount - commission;
 
-    // 3. Transfer to Seller (Stripe Connect)
-    // NOTE: In a real app, you need the Seller's Connected Account ID.
     if (auction.seller.stripeAccountId) {
       try {
         await stripe.transfers.create({
@@ -85,18 +87,13 @@ exports.releaseFunds = async (req, res) => {
         });
       } catch (stripeError) {
         console.error('Stripe Transfer Failed:', stripeError.message);
-        // We continue to update DB for MVP purposes even if transfer fails
       }
     }
-
-    // 4. Update Status
-    auction.status = 'completed'; // Fully closed
+    auction.status = 'completed';
     await auction.save();
-
-    res.status(200).json({ message: 'Funds released to seller. Transaction complete.' });
-
+    res.status(200).json({ message: 'Funds released to seller.' });
   } catch (error) {
-    console.error("RELEASE FUNDS ERROR:", error);
+    console.error("Release Error:", error);
     res.status(500).json({ message: error.message });
   }
 };

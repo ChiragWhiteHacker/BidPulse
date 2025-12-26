@@ -3,7 +3,6 @@ import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { io } from 'socket.io-client';
-import { loadStripe } from '@stripe/stripe-js'; // <--- ADDED
 import { Clock, DollarSign, User, ArrowLeft, Edit } from 'lucide-react';
 import { toast } from 'react-toastify';
 
@@ -67,26 +66,33 @@ const AuctionDetails = () => {
     }
   };
 
-  // --- PAYMENT HANDLER (ADDED) ---
+  // --- PAYMENT HANDLER (UPDATED FOR 2025) ---
   const handlePayment = async () => {
     try {
-      // REPLACE WITH YOUR STRIPE PUBLIC KEY
-      const stripe = await loadStripe('pk_test_51RHfFMP4rKd5YSDMOiiMczlb2BYut9OlswloamALGAbBa4FUlc5VtIyQT25ctaridbK45k6JsUEUaTPKihQ6eqW100UI8agNnj'); 
-
       const config = {
         headers: { Authorization: `Bearer ${user.token}` },
       };
 
-      // Call the backend to create a checkout session
+      // 1. Call Backend to create session
+      console.log("Requesting payment session...");
       const { data } = await axios.post(
         `http://localhost:5000/api/payment/checkout/${id}`,
         {}, 
         config
       );
 
-      // Redirect to Stripe
-      await stripe.redirectToCheckout({ sessionId: data.id });
+      // 2. Backend returns { id: "...", url: "https://checkout.stripe.com/..." }
+      if (data.url) {
+          console.log("Redirecting to Stripe:", data.url);
+          // 3. Use standard browser redirect instead of deprecated method
+          window.location.href = data.url; 
+      } else {
+          console.error("No URL returned from backend:", data);
+          toast.error("Payment Error: No redirect URL found.");
+      }
+
     } catch (error) {
+      console.error("Frontend Payment Error:", error);
       toast.error(error.response?.data?.message || 'Payment initiation failed');
     }
   };
