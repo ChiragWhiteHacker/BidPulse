@@ -6,7 +6,7 @@ const User = require('../models/User');
 // @route   POST /api/payment/checkout/:auctionId
 // @access  Private (Winner only)
 exports.createCheckoutSession = async (req, res) => {
-  console.log("1. Payment Request Received for Auction:", req.params.auctionId); // <--- DEBUG LOG
+  console.log("1. Payment Request Received for Auction:", req.params.auctionId);
 
   try {
     // Check if API Key is loaded
@@ -39,8 +39,7 @@ exports.createCheckoutSession = async (req, res) => {
             currency: 'usd',
             product_data: {
               name: auction.title,
-              description: auction.description ? auction.description.substring(0, 400) : "Auction Item", // Limit length to be safe
-              // We intentionally leave out 'images' for now to prevent URL errors
+              description: auction.description ? auction.description.substring(0, 400) : "Auction Item",
             },
             unit_amount: Math.round(auction.currentPrice * 100), // Stripe uses cents
           },
@@ -61,23 +60,32 @@ exports.createCheckoutSession = async (req, res) => {
 
   } catch (error) {
     console.error("!!! STRIPE ERROR !!!");
-    console.error(error); // This prints the full error object
+    console.error(error);
     res.status(500).json({ message: error.message || "Payment Processing Failed" });
   }
 };
 
 // @desc    Buyer confirms receipt -> Release funds to Seller
+// @route   POST /api/payment/release/:auctionId
+// @access  Private (Buyer/Winner)
 exports.releaseFunds = async (req, res) => {
-  // ... (Keep existing releaseFunds logic, it is fine) ...
   try {
     const auction = await Auction.findById(req.params.auctionId).populate('seller');
-    if (auction.winner.toString() !== req.user.id) return res.status(403).json({ message: 'Not authorized' });
-    if (auction.status !== 'paid_held_in_escrow') return res.status(400).json({ message: 'Funds cannot be released yet' });
 
+    // 1. Validation
+    if (auction.winner.toString() !== req.user.id) {
+      return res.status(403).json({ message: 'Not authorized' });
+    }
+    if (auction.status !== 'paid_held_in_escrow') {
+      return res.status(400).json({ message: 'Funds cannot be released yet' });
+    }
+
+    // 2. Calculate Commission (8%)
     const totalAmount = auction.currentPrice;
     const commission = totalAmount * 0.08;
     const sellerPayout = totalAmount - commission;
 
+    // 3. Transfer to Seller (Stripe Connect)
     if (auction.seller.stripeAccountId) {
       try {
         await stripe.transfers.create({
@@ -89,11 +97,16 @@ exports.releaseFunds = async (req, res) => {
         console.error('Stripe Transfer Failed:', stripeError.message);
       }
     }
-    auction.status = 'completed';
+
+    // 4. Update Status (FINALIZED)
+    // We set it to 'closed' so the "Pay Now" button doesn't reappear
+    auction.status = 'closed'; 
     await auction.save();
-    res.status(200).json({ message: 'Funds released to seller.' });
+
+    res.status(200).json({ message: 'Funds released to seller. Transaction complete.' });
+
   } catch (error) {
-    console.error("Release Error:", error);
+    console.error("RELEASE FUNDS ERROR:", error);
     res.status(500).json({ message: error.message });
   }
 };

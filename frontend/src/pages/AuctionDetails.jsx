@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import axios from 'axios';
 import { useSelector } from 'react-redux';
 import { io } from 'socket.io-client';
-import { Clock, DollarSign, User, ArrowLeft, Edit } from 'lucide-react';
+import { Clock, DollarSign, User, ArrowLeft, Edit, CheckCircle, Package } from 'lucide-react';
 import { toast } from 'react-toastify';
 
 // Initialize Socket outside component
@@ -31,10 +31,8 @@ const AuctionDetails = () => {
     };
     fetchAuction();
 
-    // 2. Join the "Room"
     socket.emit('joinAuction', id);
 
-    // 3. Listen for Real-Time Updates
     socket.on('bidUpdated', (updatedAuction) => {
       setAuction(updatedAuction);
       setBidAmount(updatedAuction.currentPrice + 10);
@@ -66,14 +64,13 @@ const AuctionDetails = () => {
     }
   };
 
-  // --- PAYMENT HANDLER (UPDATED FOR 2025) ---
+  // --- PAYMENT HANDLER (FIXED: Using Direct Redirect) ---
   const handlePayment = async () => {
     try {
       const config = {
         headers: { Authorization: `Bearer ${user.token}` },
       };
 
-      // 1. Call Backend to create session
       console.log("Requesting payment session...");
       const { data } = await axios.post(
         `http://localhost:5000/api/payment/checkout/${id}`,
@@ -81,10 +78,9 @@ const AuctionDetails = () => {
         config
       );
 
-      // 2. Backend returns { id: "...", url: "https://checkout.stripe.com/..." }
       if (data.url) {
           console.log("Redirecting to Stripe:", data.url);
-          // 3. Use standard browser redirect instead of deprecated method
+          // Standard browser redirect (replaces deprecated redirectToCheckout)
           window.location.href = data.url; 
       } else {
           console.error("No URL returned from backend:", data);
@@ -97,6 +93,22 @@ const AuctionDetails = () => {
     }
   };
 
+  // --- RELEASE FUNDS HANDLER ---
+  const handleReleaseFunds = async () => {
+    if(!window.confirm("Have you received the item? This will release funds to the seller.")) return;
+    
+    try {
+      const config = { headers: { Authorization: `Bearer ${user.token}` } };
+      await axios.post(`http://localhost:5000/api/payment/release/${id}`, {}, config);
+      
+      toast.success("Transaction Complete! Funds released.");
+      // Manually update state to 'closed'
+      setAuction({ ...auction, status: 'closed' });
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to release funds');
+    }
+  };
+
   if (loading) return <div className="p-10 text-center">Loading...</div>;
   if (!auction) return <div className="p-10 text-center">Not Found</div>;
 
@@ -105,8 +117,6 @@ const AuctionDetails = () => {
   const isSeller = user && user.role === 'seller';
   const isAdmin = user && user.role === 'admin';
   const canBid = user && !isOwner && !isSeller && !isAdmin;
-
-  // Check if current user is the winner
   const isWinner = user && auction.winner === user._id;
 
   return (
@@ -168,60 +178,74 @@ const AuctionDetails = () => {
           </div>
 
           <div className="mt-8">
-            {/* PAYMENT LOGIC START */}
-            {auction.status === 'completed' || auction.status === 'paid_held_in_escrow' ? (
-                // If Paid
-                auction.status === 'paid_held_in_escrow' ? (
-                     <div className="bg-blue-50 border border-blue-200 p-6 rounded-xl text-center">
-                        <h3 className="text-lg font-bold text-blue-800">Item Sold & Paid</h3>
-                        <p className="text-blue-600">This item has been paid for.</p>
+            {/* --- UPDATED STATUS LOGIC --- */}
+            
+            {/* 1. Transaction Closed/Finalized */}
+            {auction.status === 'closed' ? (
+                <div className="bg-gray-800 text-white p-6 rounded-xl text-center">
+                    <CheckCircle className="mx-auto h-8 w-8 text-green-400 mb-2" />
+                    <h3 className="text-xl font-bold">Transaction Complete</h3>
+                    <p className="text-gray-300 text-sm">This auction has been successfully finalized.</p>
+                </div>
+
+            /* 2. Paid & Held in Escrow */
+            ) : auction.status === 'paid_held_in_escrow' ? (
+                isWinner ? (
+                    <div className="bg-blue-50 border border-blue-200 p-6 rounded-xl text-center">
+                        <Package className="mx-auto h-8 w-8 text-blue-600 mb-2" />
+                        <h3 className="text-lg font-bold text-blue-800 mb-1">Payment Secure</h3>
+                        <p className="text-blue-600 text-sm mb-4">
+                            Your payment is held in escrow. Only release funds after you have received the item.
+                        </p>
+                        <button 
+                            onClick={handleReleaseFunds}
+                            className="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition w-full"
+                        >
+                            Confirm Receipt & Release Funds
+                        </button>
                     </div>
-                // If Completed but Not Paid (and User is Winner)
-                ) : isWinner ? (
+                ) : (
+                    <div className="bg-blue-50 border border-blue-200 p-6 rounded-xl text-center">
+                        <h3 className="text-lg font-bold text-blue-800">Item Sold & Paid</h3>
+                        <p className="text-blue-600">Pending delivery confirmation.</p>
+                    </div>
+                )
+
+            /* 3. Completed (Waiting for Payment) */
+            ) : auction.status === 'completed' ? (
+                isWinner ? (
                     <div className="bg-green-50 border border-green-200 p-6 rounded-xl text-center">
                          <h3 className="text-xl font-bold text-green-800 mb-2">🎉 You Won!</h3>
-                         <p className="text-green-700 mb-4">
-                            Congratulations! You won this item for <b>${auction.currentPrice}</b>.
-                         </p>
-                         <button 
-                           onClick={handlePayment}
-                           className="bg-green-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-green-700 transition shadow-lg shadow-green-200 flex items-center justify-center gap-2 w-full mx-auto"
-                         >
+                         <button onClick={handlePayment} className="bg-green-600 text-white px-8 py-3 rounded-lg font-bold hover:bg-green-700 transition w-full flex items-center justify-center gap-2">
                            <DollarSign size={20} /> Pay Now via Stripe
                          </button>
                     </div>
                 ) : (
-                    // Completed but user is not winner
                     <div className="bg-gray-100 text-gray-500 p-4 rounded-lg text-center font-medium">
                         Auction Ended. Winner: {auction.bids[auction.bids.length-1]?.bidder?.name}
                     </div>
                 )
+
+            /* 4. Active Bidding */
             ) : canBid ? (
-              // Active & Can Bid
               <form onSubmit={handlePlaceBid} className="flex gap-4">
                 <div className="relative flex-1">
                   <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <DollarSign className="h-5 w-5 text-gray-400" />
+                     <DollarSign className="h-5 w-5 text-gray-400" />
                   </div>
-                  <input
-                    type="number"
-                    value={bidAmount}
-                    onChange={(e) => setBidAmount(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-bid-purple focus:border-bid-purple"
-                    min={auction.currentPrice + 1}
-                    required
-                  />
+                  <input type="number" value={bidAmount} onChange={(e) => setBidAmount(e.target.value)} className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg" min={auction.currentPrice + 1} required />
                 </div>
                 <button type="submit" className="bg-bid-purple text-white px-8 py-3 rounded-lg font-bold hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
                   Place Bid
                 </button>
               </form>
+
+            /* 5. Owner View */
             ) : isOwner ? (
                <div className="bg-amber-50 text-amber-800 p-4 rounded-lg text-center font-medium">This is your auction.</div>
             ) : (
                 <div className="text-center"><Link to="/login" className="text-bid-purple font-bold">Log in</Link> to bid.</div>
             )}
-            {/* PAYMENT LOGIC END */}
           </div>
         </div>
       </div>
